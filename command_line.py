@@ -1,5 +1,8 @@
 __author__ = 'StreetHustling'
 
+
+__author__ = 'StreetHustling'
+
 from PIL import Image
 import pytesseract
 import numpy as np
@@ -101,4 +104,5 @@ img2 = Image.open('images/plate_test1.jpg')
 img2.save("images/plate_test2.jpg", dpi=(3000,3000))
 
 print(pytesseract.image_to_string(Image.open('images/plate_test2.jpg')))
+
 
