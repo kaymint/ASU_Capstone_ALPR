@@ -27,6 +27,8 @@ import cv2
 import numpy as np
 import sys
 import os.path
+import pytesseract
+from PIL import Image
 
 # if len(sys.argv) != 3:
 #     print "%s input_file output_file" % (sys.argv[0])
@@ -186,7 +188,7 @@ def include_box(index, h_, contour):
 # Load the image
 # orig_img = cv2.imread(input_file)
 
-orig_img = cv2.imread('images/plate_2.jpg')
+orig_img = cv2.imread('images/md.jpg')
 
 # Add a border to the image for processing sake
 img = cv2.copyMakeBorder(orig_img, 50, 50, 50, 50, cv2.BORDER_CONSTANT)
@@ -206,11 +208,15 @@ blue_edges = cv2.Canny(blue, 200, 250)
 green_edges = cv2.Canny(green, 200, 250)
 red_edges = cv2.Canny(red, 200, 250)
 
+
+
 # Join edges back into image
 edges = blue_edges | green_edges | red_edges
 
 # Find the contours
 contours, hierarchy = cv2.findContours(edges.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+
+img3 = cv2.drawContours(edges, contours, 0, (0,255,0), 3)
 
 hierarchy = hierarchy[0]
 
@@ -316,7 +322,10 @@ for index_, (contour_, box) in enumerate(keepers):
 
 # blur a bit to improve ocr accuracy
 new_image = cv2.blur(new_image, (2, 2))
-cv2.imwrite('images/plate_test1.jpg', new_image)
+cv2.imwrite('images/plate_test2.jpg', new_image)
+
+os.system('tesseract images/plate_test2.jpg out2 nobatch digits_and_letters')
+print(pytesseract.image_to_string(Image.open('images/plate_test2.jpg')))
 
 # cv2.imwrite('edges.png', edges)
 # cv2.imwrite('processed.png', processed)
