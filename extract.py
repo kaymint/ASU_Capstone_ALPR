@@ -188,7 +188,7 @@ def include_box(index, h_, contour):
 # Load the image
 # orig_img = cv2.imread(input_file)
 
-orig_img = cv2.imread('images/md.jpg')
+orig_img = cv2.imread('images/test6.jpg')
 
 # Add a border to the image for processing sake
 img = cv2.copyMakeBorder(orig_img, 50, 50, 50, 50, cv2.BORDER_CONSTANT)

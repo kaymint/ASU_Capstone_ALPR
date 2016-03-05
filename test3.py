@@ -10,8 +10,8 @@ import os
 # img = cv2.imread('images/test_001.jpg', 0)
 # img1 = cv2.imread('images/test_001.jpg')
 
-img = cv2.imread('images/bogart.JPG', 0)
-img1 = cv2.imread('images/bogart.JPG')
+img = cv2.imread('images/prince.JPG', 0)
+img1 = cv2.imread('images/prince.JPG')
 
 res = cv2.resize(img,None,fx=.2, fy=.2, interpolation = cv2.INTER_CUBIC)
 
@@ -62,24 +62,24 @@ areas = [cv2.contourArea(c) for c in contours]
 max_index = np.argmax(areas)
 cnt=contours[max_index]
 
-rect = cv2.minAreaRect(cnt)
-box = cv2.cv.BoxPoints(rect)
-box = np.int0(box)
-cv2.drawContours(img1,[box],0,(0,0,255),2)
-cv2.drawContours(img1,contours,0,(0,0,255),1)
+for cnt in contours:
+    rect = cv2.minAreaRect(cnt)
+    box = cv2.cv.BoxPoints(rect)
+    box = np.int0(box)
+    cv2.drawContours(img,[box],0,(0,0,255),2)
+    cv2.drawContours(img,contours,0,(0,0,255),1)
 
 
+    x,y,w,h = cv2.boundingRect(cnt)
+    cv2.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
 
-x,y,w,h = cv2.boundingRect(cnt)
-cv2.rectangle(img,(x,y),(x+w,y+h),(0,255,0),2)
-# cv2.imshow("Show",img1)
+# cv2.imshow("Show",img)
 # cv2.waitKey()
 
-plt.subplot(111),plt.imshow(img1)
+plt.subplot(111),plt.imshow(img)
 plt.title('Detected Image'), plt.xticks([]), plt.yticks([])
 
 plt.show()
-
 
 cropped_img = img[y:y+h, x:x+w]
 # gray_image = cv2.cvtColor(cropped_img, cv2.COLOR_BGR2GRAY)
@@ -92,8 +92,6 @@ ret,cropped_thresh = cv2.threshold(cropped_img, 127,255,cv2.THRESH_BINARY+cv2.TH
 # cropped_thresh = cv2.adaptiveThreshold(cropped_img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
 #             cv2.THRESH_BINARY,11,2)
 
-#
-
 # kernel = np.ones((2,2),np.float32)/4
 # cropped_thresh = cv2.filter2D(cropped_thresh,-1,kernel)
 
@@ -105,46 +103,48 @@ cv2.pyrUp(cropped_thresh)
 # cv2.imshow("cropped2", cropped_thresh)
 # cv2.waitKey(0)
 
-plt.subplot(111),plt.imshow(cropped_thresh)
+plt.subplot(111),plt.imshow(cropped_thresh, cmap = 'gray')
 plt.title('Cropped Image'), plt.xticks([]), plt.yticks([])
 
 plt.show()
 
-SZ=20000
-affine_flags = cv2.WARP_INVERSE_MAP|cv2.INTER_LINEAR
+edges2 = cv2.Canny(cropped_thresh,100,200)
+
+contours2, hierarchy2 = cv2.findContours(edges2,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
 
 
-# cells = [np.hsplit(row,100) for row in np.vsplit(cropped_thresh,50)]
-#
-# # First half is trainData, remaining is testData
-# train_cells = [ i[:50] for i in cells ]
-# test_cells = [ i[50:] for i in cells]
+# Find the index of the largest contour
+areas = [cv2.contourArea(c) for c in contours2]
+max_index = np.argmax(areas)
+cnt3=contours2[max_index]
+
+rect3 = cv2.minAreaRect(cnt3)
+box3 = cv2.cv.BoxPoints(rect3)
+box3 = np.int0(box)
+cv2.drawContours(cropped_thresh,[box3],0,(0,255,255),2)
+cv2.drawContours(cropped_thresh,contours2,0,(0,255,255),1)
 
 
+x2,y2,w2,h2 = cv2.boundingRect(cnt3)
+cv2.rectangle(cropped_thresh,(x2,y2),(x2+w2,y2+h2),(0,255,0),2)
 
-def deskew(input_img):
-    m = cv2.moments(input_img)
-    if abs(m['mu02']) < 1e-2:
-        return input_img.copy()
-    skew = m['mu11']/m['mu02']
-    M = np.float32([[1, skew, -0.5*SZ*skew], [0, 1, 0]])
-    img = cv2.warpAffine(input_img,M,(SZ, SZ),flags=affine_flags)
-    return img
-
-
-# deskewed = [map(deskew,row) for row in train_cells]
-
-# deskewed = deskew(cropped_thresh);
-#
-# cv2.imshow("deskewed", deskewed)
+for cnt4 in contours2:
+    rect4 = cv2.minAreaRect(cnt4)
+    box4 = cv2.cv.BoxPoints(rect4)
+    box4 = np.int0(box4)
+    cv2.drawContours(cropped_thresh,[box4],0,(0,255,255),2)
 
 
-plt.subplot(111),plt.imshow(cropped_thresh)
-plt.title('Cropped Image'), plt.xticks([]), plt.yticks([])
+    x3,y3,w3,h3 = cv2.boundingRect(cnt4)
+    cv2.rectangle(cropped_thresh,(x3,y3),(x3+w3,y3+h3),(0,255,255),2)
+
+plt.subplot(111),plt.imshow(cropped_thresh, cmap = 'gray')
+plt.title('Edge Image'), plt.xticks([]), plt.yticks([])
 
 plt.show()
 
 res = cv2.resize(cropped_thresh,None,fx=.2, fy=.2, interpolation = cv2.INTER_CUBIC)
+
 
 cv2.imwrite('images/plate_test1.jpg',res)
 # cv2.imwrite('images/plate_test1.jpg',thresh1)
@@ -152,7 +152,7 @@ os.system('tesseract images/plate_test1.jpg out2 nobatch digits_and_letters')
 
 
 img2 = Image.open('images/plate_test1.jpg')
-img2.save("images/plate_test2.jpg", dpi=(3000,3000))
+img2.save("images/plate_test2.jpg", ppi=(3000,3000))
 
 os.system('tesseract images/plate_test2.jpg out3')
 
