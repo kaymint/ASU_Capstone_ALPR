@@ -87,12 +87,14 @@ def getNumPlate(contours, img):
         (x,y,w,h) = cv2.boundingRect(cnt)
         aspect_ratio = float (w) / h
 
-        if cv2.contourArea(cnt) < 50000:
+        if cv2.contourArea(cnt) < 60000:
             if 1.8 < aspect_ratio < 5.1 :
+
                 numplateImg = img[y:y+h, x:x+w]
                 hist = cv2.calcHist([numplateImg],[0],None,[256],[0,256])
                 ratio = float (hist[255]) / hist[0]
-                if ratio > 1.5:
+
+                if ratio > 1.25:
                     return numplateImg
                 else:
                     return False
@@ -103,7 +105,7 @@ def getNumPlate(contours, img):
 
 
 
-image = cv2.imread('images/md.jpg')
+image = cv2.imread('images/4_120.jpg')
 
 smallImg = resizeInputImg(image)
 
