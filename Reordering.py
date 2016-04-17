@@ -11,13 +11,28 @@ def isProbableCharacter(x,y,w,h):
         # x,y,w,h = cv2.boundingRect(c)
         ratio = getAspectRatio(w,h)
         area = getBoundingRectArea(w,h)
+        # print("Area" + str(area))
+        # print("Ratio" + str(ratio))
 
         #filter according to aspect ratio and area
         if ratio >= 1.5 and ratio <= 1.8:
+            # print("Area" + str(area))
             if area > 50:
                 return True
         else:
             return False
+
+def getAverageArea(list):
+
+    totalArea = 0
+    count = 0
+    for x in list:
+        totalArea = x + totalArea
+        count = count + 1
+    if len(list) < 0:
+        return totalArea/count
+    else:
+        return 0
 
 
 '''

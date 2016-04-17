@@ -43,7 +43,7 @@ def saveInOrder(matrix, img):
         y = m[1]
         h = m[3]
         w = m[2]
-        seg = img[y-4:y+h+4, x-4:x+w+4]
+        seg = img[y-3:y+h+3, x-3:x+w+3]
         i = i + 1
         cv2.imwrite('segments/'+str(i)+'.jpg',seg)
         img2 = Image.open('segments/'+str(i)+'.jpg')
@@ -57,21 +57,14 @@ def resize(image, height=50, width=30):
 
 #clean character with a series of morphological operations
 def cleanSegment(image):
-    kernel = np.ones((2,2),np.uint8)
-
-    erosion = cv2.erode(image,kernel,iterations = 2)
-
-    kernel = np.ones((2,2),np.uint8)
-
-    dilation = cv2.dilate(erosion,kernel,iterations = 1)
 
     kernel = np.ones((3,3),np.uint8)
 
-    opening = cv2.morphologyEx(dilation, cv2.MORPH_OPEN, kernel)
+    opening = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
 
     closing = cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel)
 
-    kernel = np.ones((5,5),np.uint8)
+    kernel = np.ones((2,2),np.uint8)
 
     final = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
 
@@ -91,7 +84,7 @@ def readChars(characterStack):
 
 
 #1. read image
-image = cv2.imread('images/2_90.jpg')
+image = cv2.imread('images/1_180.jpg')
 
 #2. resize image
 smallImg = resizeInputImg(image)
@@ -100,22 +93,27 @@ smallImg = resizeInputImg(image)
 smallImgGrey = cv2.cvtColor(smallImg, cv2.COLOR_RGB2GRAY)
 
 #4. mask image
-lower = np.array([75,90,80])  #mask lower range
+lower = np.array([180,180,180])  #mask lower range
 upper = np.array([255,255,255])  #mask upper range
 
 #4.1 colour mask
 shapeMask = cv2.inRange(smallImg, lower, upper)
 
 #use opening to remove unwanted white spaces or noise
-opening_kernel = np.ones((3,3),np.uint8)
+opening_kernel = np.ones((2,2),np.uint8)
 opening = cv2.morphologyEx(shapeMask, cv2.MORPH_OPEN, opening_kernel)
 
 #show opened image
 cv2.imshow("Image", opening)
 cv2.waitKey(0)
 
+
+edges = cv2.Canny(opening,100,200)
+cv2.imshow("Edges", edges)
+cv2.waitKey(0)
+
 #5. find contours in copy of mask
-(cnts, _) = cv2.findContours(shapeMask.copy(), cv2.RETR_EXTERNAL,
+(cnts, _) = cv2.findContours(edges.copy(), cv2.RETR_EXTERNAL,
 	cv2.CHAIN_APPROX_SIMPLE)
 
 #6. get Largest Contour
@@ -153,25 +151,27 @@ cv2.imshow("Opening And Closing And Both", morphStack)
 cv2.waitKey(0)
 
 #11. detect edges in the image
-edges = cv2.Canny(closing,100,200)
+edges = cv2.Canny(opening,100,200)
 #12. find contours in edges image
 (edge_cnts, _) = cv2.findContours(edges.copy(), cv2.RETR_EXTERNAL,
 	cv2.CHAIN_APPROX_SIMPLE)
 
-img = cv2.drawContours(edges, edge_cnts, -1, (0,255,0), 3)
-edge_morph_stack = np.hstack((edges, closing))
+cv2.imshow("Edges 1", edges.copy())
+cv2.waitKey(0)
+
+img = cv2.drawContours(edges.copy(), edge_cnts, -1, (0,255,0), 3)
+edge_morph_stack = np.hstack((edges.copy(), opening))
 
 #12. find contours in edges image
-(edge_cnts, _) = cv2.findContours(edges.copy(), cv2.RETR_EXTERNAL,
-	cv2.CHAIN_APPROX_SIMPLE)
+(edge_cnts, _) = cv2.findContours(edges.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
 #show stack
-
-cv2.imshow("Edges", edge_morph_stack)
-cv2.waitKey(0)
+# cv2.imshow("Edges", edge_morph_stack)
+# cv2.waitKey(0)
 
 #13. get largest 20 contours
 edge_cnts = sorted(edge_cnts, key = cv2.contourArea, reverse = True)[:20]
+print(len(edge_cnts))
 print("Edges in contour"+str(edge_cnts))
 
 
@@ -186,31 +186,62 @@ for c in edge_cnts:
         c_details = Reordering.getContourDetails(x,y,w,h)
         prob_seg_list.append(c_details)
 
+print(prob_seg_list)
+
+
+
 print 'prob seg list' + str(prob_seg_list)
-#sort segments into rows
-sorted_seg = Reordering.rowSort(prob_seg_list)
 
-#get sorted Matrix
-sortedMatrix = Reordering.isOnTop(sorted_seg, prob_seg_list)
+if len(prob_seg_list) != 0:
+    totalArea = 0
+    count = 0
+    for p in prob_seg_list:
+        count = count + 1
+        area = float (p[2]) * (p[3])
+        print("Area "+str(area))
+        totalArea = area + totalArea
+        print("total Area "+str(totalArea))
 
-#sorted matrix
-for c in sortedMatrix:
-    cv2.rectangle(cropped_img,(c[0],c[1]),(c[0]+c[2],c[1]+c[3]),(0,255,0),2)
-    cv2.imshow("Cropped Image", cropped_img)
+    totalAverage = 0
+    if count > 0:
+        totalAverage = float (totalArea) / count
+        print("Average Area "+str(totalAverage))
+
+    for p in prob_seg_list:
+        area = float (p[2]) * (p[3])
+        if (totalAverage/area) > 3.00:
+            print("Removing "+str(area))
+            prob_seg_list.remove(p)
+
+    #sort segments into rows
+    sorted_seg = Reordering.rowSort(prob_seg_list)
+
+    #get sorted Matrix
+    sortedMatrix = Reordering.isOnTop(sorted_seg, prob_seg_list)
+
+
+
+    #sorted matrix
+    for c in sortedMatrix:
+        cv2.rectangle(cropped_img,(c[0],c[1]),(c[0]+c[2],c[1]+c[3]),(0,255,0),2)
+        cv2.imshow("Cropped Image", cropped_img)
+        cv2.waitKey(0)
+
+    #15. save characters in order
+    characterStack = saveInOrder(sortedMatrix, thresh)
+
+    #16. read characters and stack them together
+    totalImage = readChars(characterStack)
+
+    #show stack characters
+    cv2.imshow("Stacked", totalImage)
     cv2.waitKey(0)
 
-#15. save characters in order
-characterStack = saveInOrder(sortedMatrix, thresh)
+    #17. write final image
+    cv2.imwrite('segments/fix.jpg',totalImage)
 
-#16. read characters and stack them together
-totalImage = readChars(characterStack)
+    #18. recognize characters
+    os.system('tesseract segments/fix.jpg testFix nobatch digits_and_letters')
 
-#show stack characters
-cv2.imshow("Stacked", totalImage)
-cv2.waitKey(0)
-
-#17. write final image
-cv2.imwrite('segments/fix.jpg',totalImage)
-
-#18. recognize characters
-os.system('tesseract segments/fix.jpg testFix nobatch digits_and_letters')
+else:
+    print( " Could not recognize")
